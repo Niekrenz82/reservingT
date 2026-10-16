@@ -37,6 +37,7 @@ tri_1[0,0:3].sum()
 
 # %% 
 CL = ChainLadder()
-CL._calc_dev_factors(triangle_test_cum)
+dev_factor = CL._calc_dev_factors(triangle_test_cum)
 # %%
-170 / 150
+CL._fill_triangle(triangle_test_cum, dev_factor)
+# %%

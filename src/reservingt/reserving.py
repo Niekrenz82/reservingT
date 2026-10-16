@@ -55,9 +55,10 @@ class ChainLadder(ReservingMethod):
     """
     
     def __init__(self):
-        dev_factors = None
-        full_triangle = None
+        self.dev_factors = None
+        self.full_triangle = None
     
+    # Method: Calc dev factors
     def _calc_dev_factors(self, triangle: Triangle):
         n = triangle.n
         dev_factors = np.zeros(n-1)
@@ -65,6 +66,15 @@ class ChainLadder(ReservingMethod):
         for j in range (1,n):
             dev_factors[j-1] = C[0:(n-j),j].sum()/C[0:(n-j),j-1].sum()
         return dev_factors
+    
+    # Method: Fill triangle using CL method
+    def _fill_triangle(self, triangle: Triangle, dev_factors):
+        full_data = triangle.data
+        n = triangle.n
+        for i in range(1, n):
+            for j in range(n-i, n):
+                full_data[i, j] = full_data[i, j-1] * dev_factors[j-1]
+        return full_data
     
     def calc_reserve():
         """
