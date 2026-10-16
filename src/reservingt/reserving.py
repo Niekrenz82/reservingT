@@ -1,7 +1,10 @@
+from abc import ABC, abstractmethod
 import numpy as np
 
-
-class triangle:
+class Triangle:
+    """
+    Triangle to hold losses over origin and development.
+    """
     def __init__(self, data: np.ndarray, incremental: bool, ):
         data_shape = data.shape
         if data.ndim != 2:
@@ -39,3 +42,31 @@ class triangle:
                 else:
                     cumulativ[i,j] = I[i,j] + cumulativ[i,j-1]
         return cumulativ
+
+class ReservingMethod(ABC):
+    
+    @abstractmethod
+    def calc_reserve(self, triangle: Triangle):
+        """calculate the reserve."""
+
+class ChainLadder(ReservingMethod):
+    """
+    Method for ChainLadder based reserving
+    """
+    
+    def __init__(self):
+        dev_factors = None
+        full_triangle = None
+    
+    def _calc_dev_factors(self, triangle: Triangle):
+        n = triangle.n
+        dev_factors = np.zeros(n-1)
+        C = triangle.data
+        for j in range (1,n):
+            dev_factors[j-1] = C[0:(n-j),j].sum()/C[0:(n-j),j-1].sum()
+        return dev_factors
+    
+    def calc_reserve():
+        """
+        TO-DO:
+        """

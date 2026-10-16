@@ -3,7 +3,7 @@
 import importlib
 import reservingt.reserving as reserving
 importlib.reload(reserving) 
-from reservingt.reserving import triangle
+from reservingt.reserving import Triangle, ChainLadder 
 import numpy as np
 
 # %%
@@ -23,9 +23,9 @@ tri_3 = np.array([
     [110.,  55.,   0.],
     [120.,   0.,   0.]
 ])
-triangle_test_cum = triangle(data=tri_1, incremental=False)
-triangle_test_inc = triangle(data=tri_3, incremental=True)
-triangle_test = triangle(data=tri_2, incremental=False)
+triangle_test_cum = Triangle(data=tri_1, incremental=False)
+triangle_test_inc = Triangle(data=tri_3, incremental=True)
+triangle_test = Triangle(data=tri_2, incremental=False)
 
 # %%
 triangle_test_cum.to_incremental()
@@ -33,3 +33,10 @@ triangle_test_cum.to_incremental()
 triangle_test_inc.to_cumulativ()
 
 # %%
+tri_1[0,0:3].sum()
+
+# %% 
+CL = ChainLadder()
+CL._calc_dev_factors(triangle_test_cum)
+# %%
+170 / 150
