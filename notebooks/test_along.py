@@ -41,3 +41,5 @@ dev_factor = CL._calc_dev_factors(triangle_test_cum)
 # %%
 CL._fill_triangle(triangle_test_cum, dev_factor)
 # %%
+CL.calc_reserve(triangle_test_cum)
+# %%

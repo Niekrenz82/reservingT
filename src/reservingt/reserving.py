@@ -48,6 +48,8 @@ class ReservingMethod(ABC):
     @abstractmethod
     def calc_reserve(self, triangle: Triangle):
         """calculate the reserve."""
+        
+    
 
 class ChainLadder(ReservingMethod):
     """
@@ -69,14 +71,40 @@ class ChainLadder(ReservingMethod):
     
     # Method: Fill triangle using CL method
     def _fill_triangle(self, triangle: Triangle, dev_factors):
-        full_data = triangle.data
+        full_data = triangle.data.copy()
         n = triangle.n
         for i in range(1, n):
             for j in range(n-i, n):
                 full_data[i, j] = full_data[i, j-1] * dev_factors[j-1]
         return full_data
     
-    def calc_reserve():
+    # Method: Main for calculating the reserve
+    def calc_reserve(self, triangle: Triangle):
         """
         TO-DO:
         """
+        cumulativ = Triangle(triangle.to_cumulativ(), incremental=False) if triangle.incremental else triangle
+        self.dev_factors = self._calc_dev_factors(cumulativ)
+        full_triangle = self._fill_triangle(cumulativ, self.dev_factors)
+        n = triangle.n
+        
+        ultimates = full_triangle[:,-1]
+        diagnol = [full_triangle[i,n-(i+1)] for i in range(n)]
+        reserves = ultimates - diagnol
+        
+        full_incremental = np.zeros_like(full_triangle)
+        for i in range(n):
+            for j in range(n):
+                if j == 0:
+                    full_incremental[i,j] = full_triangle[i,j]
+                else:
+                    full_incremental[i,j] = full_triangle[i,j] - full_triangle[i,j-1]
+        
+        return {
+            "ultimates": ultimates,
+            "reserves": reserves,
+            "development_factor": self.dev_factors,
+            "full_triangle": full_triangle,
+            "full_incremental_triangle": full_incremental
+        }
+        
