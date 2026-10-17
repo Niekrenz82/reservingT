@@ -81,7 +81,7 @@ class ChainLadder(ReservingMethod):
     # Method: Main for calculating the reserve
     def calc_reserve(self, triangle: Triangle):
         """
-        TO-DO:
+        Method for calculating the reserves and incremental developed triangle.
         """
         cumulativ = Triangle(triangle.to_cumulativ(), incremental=False) if triangle.incremental else triangle
         self.dev_factors = self._calc_dev_factors(cumulativ)
@@ -107,4 +107,51 @@ class ChainLadder(ReservingMethod):
             "full_triangle": full_triangle,
             "full_incremental_triangle": full_incremental
         }
+        
+class BornhuetterFerguson(ReservingMethod):
+    """
+    Implementation of the BornhuetterFerguson method.
+    """
+    def __init__(self, prior: np.ndarray):
+        self.prior = prior
+        
+    def calc_reserve(self, triangle: Triangle):
+        CL = ChainLadder()
+        n = triangle.n
+        prior = self.prior
+        CL_res = CL.calc_reserve(triangle=triangle)
+        CL_triangle = CL_res['full_triangle']
+        CL_factors = CL_res['development_factor']
+        BF_triangle = triangle.data.copy()
+        for i in range(1, n):
+            for j in range(n-i,n):
+                if j == (n-i):
+                    F = CL_factors[j-1]
+                else:
+                    F = F*CL_factors[j-1]
+                p = 1/F
+                BF_triangle[i,j] = p*CL_triangle[i,j]+(1-p)*prior[i]
+        
+        ultimates = BF_triangle[:,-1]
+        diagnol = [BF_triangle[i,n-(i+1)] for i in range(n)]
+        reserves = ultimates - diagnol
+        
+        full_incremental = np.zeros_like(BF_triangle)
+        for i in range(n):
+            for j in range(n):
+                if j == 0:
+                    full_incremental[i,j] = BF_triangle[i,j]
+                else:
+                    full_incremental[i,j] = BF_triangle[i,j] - BF_triangle[i,j-1]
+        
+        return {
+            "ultimates": ultimates,
+            "reserves": reserves,
+            "development_factor": CL_factors,
+            "full_triangle": BF_triangle,
+            "full_incremental_triangle": full_incremental
+        }
+        
+        
+        
         
