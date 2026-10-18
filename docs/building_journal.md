@@ -114,8 +114,12 @@ reservingT/
 ├── .gitignore               # files git must not track
 ├── .python-version          # Python version for the project (3.13)
 ├── .vscode/                 # editor settings shared with the repository
+├── app/
+│   └── streamlit_app.py     # Streamlit frontend (added in Step 10)
+├── CLAUDE.md                # project rules read automatically by Claude Code
 ├── docs/
-│   └── building_journal.md  # this file
+│   ├── building_journal.md  # this file
+│   └── specs/               # feature specs, written before the code
 ├── notebooks/               # interactive scratch work, not part of the package
 ├── src/
 │   └── reservingt/
@@ -548,6 +552,160 @@ uv run ruff check
 
 All four tests should pass. The reserves for the 5×5 triangle should match the table in `conftest.py`, to the precision the tests check.
 
+## Step 10: A frontend, built from a spec
+
+The library is finished and tested, so the next piece is a small web page where someone can upload a loss triangle, pick a method and download the completed triangle. The page is a [Streamlit](https://streamlit.io/) app, and it is built with an AI coding assistant, Claude Code.
+
+The approach is **spec-driven development**. You write down what the feature must do, and the assistant builds to that document. The spec is the contract: when the code and the spec disagree, you find out which one is wrong before you change either.
+
+The order matters:
+
+1. Write the spec, and commit it.
+2. Write the rules the assistant must follow, in `CLAUDE.md`.
+3. Create the app skeleton.
+4. Ask the assistant to implement the spec, one piece at a time.
+
+### 10.1 Write the spec
+
+Create `docs/specs/streamlit_frontend.md`. A spec has the same headings every time, so the assistant and you know where to look:
+
+```markdown
+# Streamlit frontend
+
+## Goal
+
+A light Streamlit frontend for the reservingt package.
+
+Has to have one simple interface where a loss triangle can be loaded in from a csv file. Then converted to a `Triangle class from src/reservingt/reserving.py` and then either CL or BF can be used to find the reserve.
+
+## Non-goals
+
+More then a one page simple reserve app.
+
+## Inputs
+
+Loss triangle, method and additional arguments for each method in `src/reservingt/reserving.py`.
+
+## Outputs
+
+A fully developed triangle, that should be downloadable.
+
+## Layout
+
+One page with a upload/download option, method selection and triangle display.
+
+## Structure
+
+Entry point is `app/streamlit_app.py`. Non-UI logic can be found in `src/reservingt/`.
+
+## Constraints
+
+- Python 3.13
+- Use the existing dependencies
+- `src/reservingt/reserving.py` is not modified
+- Use logic in `src/reservingt/reserving.py` to perform any calculations used for the reserves.
+
+## Acceptance criteria
+
+When you can upload a loss triangle, develop it using a method and download a developed triangle that is coherent with the method.
+```
+
+What each section does:
+
+- **Goal and non-goals** say what the feature is, and, just as important, what it is not. "More than a one page simple reserve app" is the line that stops the page from growing into a dashboard.
+- **Inputs and outputs** name the data going in and coming out. Here the input is a CSV triangle and the output is a completed triangle you can download.
+- **Constraints** are the rules the implementation must respect. Two of them protect the library: the calculations stay in `reserving.py`, and that file is not edited.
+- **Acceptance criteria** say how you know the feature is done. Write them as something you can check by trying the app.
+
+> **Box: Write the spec as if the reader has never seen the project.**
+> The assistant starts each session without your memory of the discussion. Anything it needs (file names, the method names, the constraints) has to be in the spec or in `CLAUDE.md`. Vague words such as "nice" or "simple" are fine as a summary, but the constraints and acceptance criteria must be specific.
+
+> **Box: Non-goals are part of the spec.**
+> Without them, an assistant will add features that look helpful, such as charts, login or multiple file types. Each one is more code to review. Write the things you are *not* building.
+
+*Suggested commit:* `Add Streamlit frontend spec`
+
+### 10.2 Write the project rules: `CLAUDE.md`
+
+Claude Code reads a file called `CLAUDE.md` in the project root at the start of every session. It holds what is true about the project and how to work in it. Create `CLAUDE.md`:
+
+```markdown
+# reservingT
+
+Python package for loss reserving: `Triangle`, `ChainLadder`, `BornhuetterFerguson`.
+
+## Layout
+
+- `src/reservingt/`: library
+- `tests/`: pytest tests
+- `notebooks/`: scratch work, not part of the package
+- `docs/specs/`: feature specs. Feature specs live in `docs/specs/`. Read the relevant one before implementing.
+- `app/`: Streamlit frontend
+
+## Commands
+
+- `uv run pytest -v`
+- `uv run ruff check`
+- `uv run streamlit run app/streamlit_app.py`
+
+## Rules
+
+- Do not change the code in `src/reservingt/reserving.py` for any reason.
+- You can touch anything in `app/`
+```
+
+Each part has a job:
+
+- **Layout** tells the assistant where things live, so it does not search the whole repository.
+- **Commands** are the exact commands to test, lint and run the app. The assistant can run them to check its own work.
+- **Rules** are the hard limits. "Do not change ... for any reason" is deliberate. The first draft said "for UI reasons", which left room for the assistant to decide that a change was not a UI reason. Review of the file tightened the wording, and a rule that is clear is easier to follow than one that needs interpreting.
+
+> **Box: A rule with a reason is easier to keep.**
+> If a rule matters, say why in one line, for example "the library is tested against hand-checked values, so a silent edit would break the trust in those tests". The assistant then knows what to protect when a situation comes up that the rule did not cover.
+
+*Suggested commit:* `Add CLAUDE.md with project layout, commands and rules`
+
+### 10.3 Create the app skeleton
+
+Create `app/streamlit_app.py`:
+
+```python
+import streamlit as st
+
+st.title("reservingT")
+```
+
+This is deliberately small. It proves that Streamlit is installed and that the page loads. Streamlit was added as a dev dependency in Step 2.1, so no new install is needed.
+
+Run it:
+
+```powershell
+uv run streamlit run app/streamlit_app.py
+```
+
+Streamlit opens a page in your browser at `http://localhost:8501`. Stop it with `Ctrl+C` in the terminal.
+
+> **Box: Start small, then let the assistant grow it.**
+> A skeleton that runs gives both you and the assistant a working starting point. Each later change is then a small step you can see in the browser, rather than one large block of untested code.
+
+*Suggested commit:* `Add Streamlit app skeleton`
+
+### 10.4 Implement the spec
+
+Ask Claude Code to implement `docs/specs/streamlit_frontend.md`. Ask for one part at a time, for example "read the spec and implement the upload and CSV parsing first". After each part:
+
+1. Run the app and try the acceptance criteria by hand.
+2. Run `uv run pytest -v` and `uv run ruff check`.
+3. Check the diff. `src/reservingt/reserving.py` must be unchanged. Run `git diff -- src/reservingt/reserving.py` and expect no output.
+4. Commit when the part works.
+
+Keep the calculation logic in `src/reservingt/`, so the app only handles the page. The spec asks for this, and it means the calculations can be tested without starting Streamlit.
+
+> **Box: Review the diff, not the summary.**
+> An assistant's summary says what it intended. The diff says what it did. Read the diff before each commit, and check the constraints from the spec against it.
+
+*Suggested commit:* one commit per part, for example `Add CSV upload to Streamlit app`.
+
 ## Next steps
 
 Once the build is working, the following are natural extensions, in no particular order:
@@ -558,3 +716,4 @@ Once the build is working, the following are natural extensions, in no particula
 - Check the BF formula against the textbook definition with exact values for a chosen prior.
 - Decide on a tail factor before comparing with other packages.
 - Fill in the `README.md`.
+- Finish the Streamlit frontend by working through the acceptance criteria in `docs/specs/streamlit_frontend.md`.
