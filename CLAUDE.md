@@ -18,4 +18,5 @@ Python package for loss reserving: `Triangle`, `ChainLadder`, `BornhuetterFergus
 
 ## Rules
 
-- Do not change the calculation logic in `src/reservingt/reserving.py` for UI reasons.
+- Do not change the code in `src/reservingt/reserving.py` for any reason.
+- You can touch anything in `app/`
