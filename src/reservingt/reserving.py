@@ -19,7 +19,7 @@ class Triangle:
     def to_incremental(self) -> np.ndarray:
         if self.incremental:
             raise ValueError("Triangle is already incremental.")
-        incremental = np.zeros_like(self.data)
+        incremental = np.full_like(self.data, np.nan)
         C = self.data.copy()
         for i in range(self.n):
             for j in range(self.n - i):
@@ -33,7 +33,7 @@ class Triangle:
     def to_cumulativ(self) -> np.ndarray:
         if not self.incremental:
             raise ValueError("Triangle is already cumulativ.")
-        cumulativ = np.zeros_like(self.data)
+        cumulativ = np.full_like(self.data, np.nan)
         I = self.data
         for i in range(self.n):
             for j in range(self.n - i):
