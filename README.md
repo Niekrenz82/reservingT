@@ -10,6 +10,7 @@ A simple reserving engine implementing Chain Ladder and Bornhuetter-Ferguson, bu
 | Dependencies (`uv`), repository structure | By hand | Commits up to [`1c5af40`](https://github.com/Niekrenz82/reservingT/commit/1c5af40) |
 | Frontend (`app/`, `triangle_io.py`, theme) | AI (Claude Code), spec-driven, reviewed by hand | Commits after [`1c5af40`](https://github.com/Niekrenz82/reservingT/commit/1c5af40) |
 | Spec and rules (`docs/specs/`, `CLAUDE.md`) | Written by hand, edited with AI | From [`31bffe9`](https://github.com/Niekrenz82/reservingT/commit/31bffe9) onward |
+| How-it-works animation (`docs/images/how_it_works.gif`) | AI (Claude), recorded from the running app | `docs/images/` |
 
 ## Run the app
 
@@ -19,6 +20,10 @@ uv run streamlit run app/streamlit_app.py
 ```
 
 Upload a triangle from `testdata/` in the sidebar, press **Develop**, and the empty lower part of the triangle is filled in.
+
+![How the app works: upload a triangle, choose its form, press Develop](docs/images/how_it_works.gif)
+
+*This animation was made by Claude (AI), recorded from the running app.*
 
 ## Run the tests and linter
 
