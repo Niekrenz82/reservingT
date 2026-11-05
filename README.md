@@ -1,5 +1,9 @@
 # reservingT
 
+![How the app works: upload a triangle, turn on the heatmap, and develop it with Chain Ladder and Bornhuetter-Ferguson](docs/images/how_it_works.gif)
+
+*This animation was made by Claude (AI), recorded from the running app.*
+
 A simple reserving engine implementing Chain Ladder and Bornhuetter-Ferguson, built with sound software engineering practices. Everything up to the commit "test for bf" was done by hand: the reserving engine, dependency management, testing and repository structure. The UI was built with spec-driven development and AI.
 
 ## Who built what
@@ -10,6 +14,7 @@ A simple reserving engine implementing Chain Ladder and Bornhuetter-Ferguson, bu
 | Dependencies (`uv`), repository structure | By hand | Commits up to [`1c5af40`](https://github.com/Niekrenz82/reservingT/commit/1c5af40) |
 | Frontend (`app/`, `triangle_io.py`, theme) | AI (Claude Code), spec-driven, reviewed by hand | Commits after [`1c5af40`](https://github.com/Niekrenz82/reservingT/commit/1c5af40) |
 | Spec and rules (`docs/specs/`, `CLAUDE.md`) | Written by hand, edited with AI | From [`31bffe9`](https://github.com/Niekrenz82/reservingT/commit/31bffe9) onward |
+| How-it-works animation (`docs/images/how_it_works.gif`) | AI (Claude), recorded from the running app | `docs/images/` |
 
 ## Run the app
 
