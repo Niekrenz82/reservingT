@@ -1,5 +1,9 @@
 # reservingT
 
+![How the app works: upload a triangle, turn on the heatmap, and develop it with Chain Ladder and Bornhuetter-Ferguson](docs/images/how_it_works.gif)
+
+*This animation was made by Claude (AI), recorded from the running app.*
+
 A simple reserving engine implementing Chain Ladder and Bornhuetter-Ferguson, built with sound software engineering practices. Everything up to the commit "test for bf" was done by hand: the reserving engine, dependency management, testing and repository structure. The UI was built with spec-driven development and AI.
 
 ## Who built what
@@ -20,10 +24,6 @@ uv run streamlit run app/streamlit_app.py
 ```
 
 Upload a triangle from `testdata/` in the sidebar, press **Develop**, and the empty lower part of the triangle is filled in.
-
-![How the app works: upload a triangle, choose its form, press Develop](docs/images/how_it_works.gif)
-
-*This animation was made by Claude (AI), recorded from the running app.*
 
 ## Run the tests and linter
 
