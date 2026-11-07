@@ -4,7 +4,7 @@
 
 *This animation was made by Claude (AI), recorded from the running app.*
 
-A simple reserving engine implementing Chain Ladder and Bornhuetter-Ferguson, built with sound software engineering practices. Everything up to the commit "test for bf" was done by hand: the reserving engine, dependency management, testing and repository structure. The UI was built with spec-driven development and AI.
+A simple reserving engine implementing Chain Ladder, Bornhuetter-Ferguson and Cape Cod, built with sound software engineering practices. Everything up to the commit "test for bf" was done by hand: the reserving engine, dependency management, testing and repository structure. The UI was built with spec-driven development and AI.
 
 ## Who built what
 

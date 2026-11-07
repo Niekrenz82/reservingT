@@ -57,6 +57,28 @@ def test_bf_requires_prior_for_each_year(cum_5x5):
         )
 
 
+def test_cape_cod_runs_through_run_method(cum_5x5, expected_CC_5x5):
+    res = run_method(
+        cum_5x5,
+        incremental=False,
+        method="cape_cod",
+        exposure=expected_CC_5x5["exposure"],
+    )
+    assert res["elr"] == pytest.approx(expected_CC_5x5["elr"], abs=1e-9)
+    assert np.sum(res["reserves"]) == pytest.approx(
+        expected_CC_5x5["total_reserve"], abs=0.01
+    )
+
+
+def test_cape_cod_requires_exposure_for_each_year(cum_5x5):
+    with pytest.raises(ValueError, match="exposure"):
+        run_method(cum_5x5, incremental=False, method="cape_cod")
+    with pytest.raises(ValueError, match="exposures"):
+        run_method(
+            cum_5x5, incremental=False, method="cape_cod", exposure=[1.0, 2.0]
+        )
+
+
 def test_unknown_method_rejected(cum_5x5):
     with pytest.raises(ValueError, match="Unknown method"):
         run_method(cum_5x5, incremental=False, method="nope")

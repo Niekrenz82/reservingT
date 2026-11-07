@@ -16,14 +16,17 @@ All inputs are in the sidebar:
 
 - Loss triangle CSV file.
 - Triangle type: cumulative or incremental.
-- Method: Chain Ladder or Bornhuetter-Ferguson.
+- Method: Chain Ladder, Bornhuetter-Ferguson or Cape Cod.
 - For Bornhuetter-Ferguson only: prior ultimate loss per accident year. Defaults to the Chain Ladder ultimates and can be edited.
+- For Cape Cod only: exposure per accident year (e.g. premium). Defaults to 10,000 for every accident year and can be edited. Every exposure must be positive.
 - How to show the triangle: cumulative or incremental. This applies to both the loaded and the developed triangle.
 - A **Develop** button.
 
 ## Outputs
 
 A fully developed triangle, that should be downloadable. Also the ultimate loss and reserve per accident year, the total reserve, and the development factors.
+
+For Cape Cod, also the expected loss ratio (ELR) and the percent developed per accident year.
 
 ## Layout
 
@@ -51,12 +54,14 @@ Entry point is `app/streamlit_app.py`. Non-UI logic can be found in `src/reservi
 - `src/reservingt/reserving.py` is not modified
 - Use logic in `src/reservingt/reserving.py` to perform any calculations used for the reserves.
 - Sample data lives in `testdata/`: 5x5 and 10x10 triangles, each in cumulative and incremental form, plus one invalid file.
+- Cape Cod lives in `src/reservingt/cape_cod.py`, as its own module, because `reserving.py` is not modified. It reuses `BornhuetterFerguson` and `ChainLadder` from `reserving.py`.
 
 ## Acceptance criteria
 
 - Uploading a loss triangle shows it in the main area with the lower part empty, and all inputs are in the sidebar.
 - Pressing **Develop** fills in the empty lower part using the chosen method.
 - For `testdata/cumulative_5x5.csv` with Chain Ladder, the total reserve is about 2382.35.
+- For `testdata/cumulative_5x5.csv` with Cape Cod and exposures 10000, 11000, 12000, 12500, 13000, the total reserve is about 2387.48 and the ELR is about 0.2111. These are the hand values in `tests/test_cape_cod.py`.
 - The cumulative and incremental versions of the same triangle give the same developed result.
 - The developed triangle can be downloaded as CSV, and uploading the download again gives the same triangle.
 - An invalid file shows a readable error message, not a traceback.

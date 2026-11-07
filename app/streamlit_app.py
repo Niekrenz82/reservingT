@@ -14,6 +14,7 @@ st.set_page_config(page_title="reservingT", layout="wide")
 METHODS = {
     "Chain Ladder": "chain_ladder",
     "Bornhuetter-Ferguson": "bornhuetter_ferguson",
+    "Cape Cod": "cape_cod",
 }
 FORMS = ["Cumulative", "Incremental"]
 
@@ -145,6 +146,24 @@ with st.sidebar:
     incremental = file_form == "Incremental"
 
     prior = None
+    exposure = None
+    if method == "cape_cod":
+        st.caption(
+            "Exposure per accident year, such as premium. Starts equal for every year and can be edited."
+        )
+        exposure_table = st.data_editor(
+            pd.DataFrame(
+                {"Accident year": range(1, n + 1), "Exposure": np.full(n, 10000.0)}
+            ),
+            disabled=["Accident year"],
+            hide_index=True,
+            column_config={
+                "Exposure": st.column_config.NumberColumn(format="%.0f", min_value=0)
+            },
+            key=f"exposure_{uploaded.file_id}",
+        )
+        exposure = exposure_table["Exposure"].to_numpy(dtype=float)
+
     if method == "bornhuetter_ferguson":
         cl_ultimates = run_method(data, incremental, "chain_ladder")["ultimates"]
         st.caption(
@@ -170,12 +189,19 @@ with st.sidebar:
     if not prior_ok:
         st.error("Every accident year needs a prior ultimate.")
 
+    exposure_ok = exposure is None or (
+        not np.isnan(exposure).any() and bool((exposure > 0).all())
+    )
+    if not exposure_ok:
+        st.error("Every accident year needs a positive exposure.")
+
+    inputs_ok = prior_ok and exposure_ok
     develop_clicked = st.button(
         "Develop",
         type="primary",
         icon=":material/play_arrow:",
         width="stretch",
-        disabled=not prior_ok,
+        disabled=not inputs_ok,
     )
 
     # Develop stores the inputs it ran on. Results show only while the inputs still match.
@@ -184,6 +210,7 @@ with st.sidebar:
         file_form,
         method,
         None if prior is None else tuple(float(x) for x in prior),
+        None if exposure is None else tuple(float(x) for x in exposure),
     )
     if develop_clicked:
         st.session_state["developed_request"] = request
@@ -193,16 +220,21 @@ with st.sidebar:
 st.caption(f"{uploaded.name} · {n} accident years · {show_form.lower()} view")
 
 if developed:
-    result = run_method(data, incremental, method, prior=prior)
+    result = run_method(data, incremental, method, prior=prior, exposure=exposure)
     shown = (
         result["full_triangle"]
         if show_form == "Cumulative"
         else result["full_incremental_triangle"]
     )
     ultimates, reserves = result["ultimates"], result["reserves"]
-    left, right = st.columns(2)
-    left.metric("Total reserve", f"{float(np.sum(reserves)):,.0f}")
-    right.metric("Total ultimate", f"{float(np.sum(ultimates)):,.0f}")
+    metrics = [
+        ("Total reserve", f"{float(np.sum(reserves)):,.0f}"),
+        ("Total ultimate", f"{float(np.sum(ultimates)):,.0f}"),
+    ]
+    if "elr" in result:
+        metrics.append(("Expected loss ratio", f"{float(result['elr']):.1%}"))
+    for column, (label, value) in zip(st.columns(len(metrics)), metrics):
+        column.metric(label, value)
 else:
     shown = as_form(data, incremental, show_form == "Incremental")
     ultimates = reserves = None
@@ -238,3 +270,14 @@ if developed:
         factors.round(4),
         alt="Development factor from each development year to the next",
     )
+
+    if "percent_developed" in result:
+        st.subheader("Percent developed")
+        percent = pd.DataFrame(
+            {"Percent developed": result["percent_developed"]},
+            index=[f"AY {i + 1}" for i in range(n)],
+        )
+        st.dataframe(
+            percent.map(lambda x: f"{x:.1%}"),
+            alt="Share of the ultimate loss developed so far for each accident year",
+        )

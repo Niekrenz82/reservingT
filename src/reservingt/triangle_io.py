@@ -8,6 +8,7 @@ for all reserve calculations and never modify it.
 import numpy as np
 import pandas as pd
 
+from reservingt.cape_cod import CapeCod
 from reservingt.reserving import BornhuetterFerguson, ChainLadder, Triangle
 
 
@@ -78,13 +79,16 @@ def as_form(data: np.ndarray, incremental: bool, want_incremental: bool) -> np.n
     return cumulative
 
 
-def run_method(data: np.ndarray, incremental: bool, method: str, prior=None) -> dict:
+def run_method(
+    data: np.ndarray, incremental: bool, method: str, prior=None, exposure=None
+) -> dict:
     """
     Run a reserving method on a triangle.
 
-    `method` is "chain_ladder" or "bornhuetter_ferguson". BF needs `prior`,
-    one prior ultimate loss per accident year. The triangle is converted to
-    cumulative form first, because the BF method expects cumulative data.
+    `method` is "chain_ladder", "bornhuetter_ferguson" or "cape_cod". BF needs
+    `prior`, one prior ultimate loss per accident year. Cape Cod needs
+    `exposure`, one exposure per accident year. The triangle is converted to
+    cumulative form first, because the methods expect cumulative data.
     """
     tri = Triangle(data, incremental=incremental)
     cumulative = Triangle(tri.to_cumulativ(), incremental=False) if incremental else tri
@@ -101,5 +105,13 @@ def run_method(data: np.ndarray, incremental: bool, method: str, prior=None) -> 
         if prior.shape != (tri.n,):
             raise ValueError(f"Expected {tri.n} prior ultimates, got {prior.shape[0]}.")
         return BornhuetterFerguson(prior=prior).calc_reserve(triangle=cumulative)
+
+    if method == "cape_cod":
+        if exposure is None:
+            raise ValueError("Cape Cod needs an exposure for each accident year.")
+        exposure = np.asarray(exposure, dtype=float)
+        if exposure.shape != (tri.n,):
+            raise ValueError(f"Expected {tri.n} exposures, got {exposure.shape[0]}.")
+        return CapeCod(exposure=exposure).calc_reserve(triangle=cumulative)
 
     raise ValueError(f"Unknown method {method!r}.")
