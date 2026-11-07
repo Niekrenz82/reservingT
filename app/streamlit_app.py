@@ -14,6 +14,7 @@ st.set_page_config(page_title="reservingT", layout="wide")
 METHODS = {
     "Chain Ladder": "chain_ladder",
     "Bornhuetter-Ferguson": "bornhuetter_ferguson",
+    "Cape Cod": "cape_cod",
 }
 FORMS = ["Cumulative", "Incremental"]
 
@@ -23,6 +24,7 @@ INK = "#0F172A"
 STRONG = "2px solid #0F172A"
 LIGHT = "1px solid #E2E8F0"
 TINT = {EMPTY: "#FFFFFF", OBSERVED: "#FFFFFF", DEVELOPED: "#F1F5F9", SUMMARY: "#F8FAFC"}
+ROW_HEIGHT = 36  # px
 
 
 def heat_color(t: float) -> str:
@@ -47,36 +49,41 @@ def cell_style(top, right, bottom, left, background, color=INK, weight=400) -> s
     )
 
 
-def triangle_html(shown, observed, ultimates, reserves, heatmap: bool) -> str:
+def triangle_html(shown, observed, ultimates, reserves, heatmap, factors, percent) -> str:
     """
-    The triangle as an HTML table, with the observed and developed blocks outlined.
+    The triangle as one HTML table, with the observed and developed blocks outlined.
 
-    `shown` holds the triangle in the chosen form, with NaN for empty cells.
-    `ultimates` and `reserves` are None until the triangle is developed.
+    The table has the development years, then Ultimate, Reserve and % developed,
+    and a Dev factor row at the bottom. Before Develop the summary columns and the
+    factor row are blank, so the table keeps the same shape.
     """
     n = shown.shape[0]
     region = np.where(observed, OBSERVED, np.where(np.isnan(shown), EMPTY, DEVELOPED))
     filled = shown[region > 0]
     low, high = float(filled.min()), float(filled.max())
     span = (high - low) or 1.0
+    summary_columns = 3
 
     def at(i: int, j: int) -> int:
-        if i < 0 or i >= n or j < 0 or j >= n + 2:
+        if i < 0 or i >= n or j < 0 or j >= n + summary_columns:
             return OUTSIDE
         return SUMMARY if j >= n else int(region[i, j])
 
-    head = "padding:8px 10px;text-align:right;font-weight:600;font-size:12px;color:#64748B;border-bottom:1px solid #CBD5E1;white-space:nowrap;"
-    headers = ["", *[f"Dev {j + 1}" for j in range(n)], "Ultimate", "Reserve"]
-    header_row = "".join(f'<th style="{head}">{label}</th>' for label in headers)
+    head = (
+        "padding:8px 10px;text-align:right;font-weight:600;font-size:12px;color:#64748B;"
+        "background:#F8FAFC;border:1px solid #E2E8F0;white-space:nowrap;"
+    )
+    label = (
+        "padding:8px 10px;text-align:left;font-weight:600;font-size:12px;color:#64748B;"
+        "background:#F8FAFC;border:1px solid #E2E8F0;white-space:nowrap;"
+    )
+    headers = ["", *[f"Dev {j + 1}" for j in range(n)], "Ultimate", "Reserve", "% developed"]
+    header_row = "".join(f'<th style="{head}">{text}</th>' for text in headers)
 
     rows = []
     for i in range(n):
-        row_label = (
-            '<th style="padding:6px 10px;text-align:left;font-weight:600;font-size:12px;'
-            f'color:#64748B;white-space:nowrap;">AY {i + 1}</th>'
-        )
-        cells = [row_label]
-        for j in range(n + 2):
+        cells = [f'<th style="{label}">AY {i + 1}</th>']
+        for j in range(n + summary_columns):
             r = at(i, j)
             text, background, color, weight = "", TINT[r], INK, 400
             if j < n:
@@ -87,10 +94,12 @@ def triangle_html(shown, observed, ultimates, reserves, heatmap: bool) -> str:
                         t = (value - low) / span
                         background = heat_color(t)
                         color = "#FFFFFF" if t > 0.55 else INK
-            elif ultimates is not None:
-                amounts = ultimates if j == n else reserves
-                text = f"{amounts[i]:,.0f}"
-                weight = 600
+            elif j == n and ultimates is not None:
+                text, weight = f"{ultimates[i]:,.0f}", 600
+            elif j == n + 1 and reserves is not None:
+                text, weight = f"{reserves[i]:,.0f}", 600
+            elif j == n + 2 and percent is not None:
+                text = f"{percent[i]:.1%}"
             style = cell_style(
                 top=border_between(r, at(i - 1, j)),
                 right=border_between(r, at(i, j + 1)),
@@ -101,13 +110,24 @@ def triangle_html(shown, observed, ultimates, reserves, heatmap: bool) -> str:
                 weight=weight,
             )
             cells.append(f'<td style="{style}">{text}</td>')
-        rows.append(f"<tr>{''.join(cells)}</tr>")
+        rows.append(f'<tr style="height:{ROW_HEIGHT}px">{"".join(cells)}</tr>')
+
+    footer_style = (
+        "padding:6px 10px;text-align:right;white-space:nowrap;font-size:13px;color:#475569;"
+        "border-top:1px solid #CBD5E1;"
+    )
+    footer = [f'<th style="{label}">Dev factor</th>']
+    for j in range(n + summary_columns):
+        text = f"{factors[j]:.4f}" if factors is not None and j < n - 1 else ""
+        footer.append(f'<td style="{footer_style}">{text}</td>')
+    rows.append(f'<tr style="height:{ROW_HEIGHT}px">{"".join(footer)}</tr>')
 
     return (
-        '<div style="overflow-x:auto">'
+        '<div style="overflow-x:auto;">'
         '<table role="table" aria-label="Loss triangle" style="border-collapse:collapse;'
         'width:100%;font-size:14px;font-variant-numeric:tabular-nums;">'
-        f"<thead><tr>{header_row}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        f'<thead><tr style="height:{ROW_HEIGHT}px">{header_row}</tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
     )
 
 
@@ -145,6 +165,24 @@ with st.sidebar:
     incremental = file_form == "Incremental"
 
     prior = None
+    exposure = None
+    if method == "cape_cod":
+        st.caption(
+            "Exposure per accident year, such as premium. Starts equal for every year and can be edited."
+        )
+        exposure_table = st.data_editor(
+            pd.DataFrame(
+                {"Accident year": range(1, n + 1), "Exposure": np.full(n, 10000.0)}
+            ),
+            disabled=["Accident year"],
+            hide_index=True,
+            column_config={
+                "Exposure": st.column_config.NumberColumn(format="%.0f", min_value=0)
+            },
+            key=f"exposure_{uploaded.file_id}",
+        )
+        exposure = exposure_table["Exposure"].to_numpy(dtype=float)
+
     if method == "bornhuetter_ferguson":
         cl_ultimates = run_method(data, incremental, "chain_ladder")["ultimates"]
         st.caption(
@@ -170,12 +208,18 @@ with st.sidebar:
     if not prior_ok:
         st.error("Every accident year needs a prior ultimate.")
 
+    exposure_ok = exposure is None or (
+        not np.isnan(exposure).any() and bool((exposure > 0).all())
+    )
+    if not exposure_ok:
+        st.error("Every accident year needs a positive exposure.")
+
     develop_clicked = st.button(
         "Develop",
         type="primary",
         icon=":material/play_arrow:",
         width="stretch",
-        disabled=not prior_ok,
+        disabled=not (prior_ok and exposure_ok),
     )
 
     # Develop stores the inputs it ran on. Results show only while the inputs still match.
@@ -184,6 +228,7 @@ with st.sidebar:
         file_form,
         method,
         None if prior is None else tuple(float(x) for x in prior),
+        None if exposure is None else tuple(float(x) for x in exposure),
     )
     if develop_clicked:
         st.session_state["developed_request"] = request
@@ -193,29 +238,38 @@ with st.sidebar:
 st.caption(f"{uploaded.name} · {n} accident years · {show_form.lower()} view")
 
 if developed:
-    result = run_method(data, incremental, method, prior=prior)
+    result = run_method(data, incremental, method, prior=prior, exposure=exposure)
     shown = (
         result["full_triangle"]
         if show_form == "Cumulative"
         else result["full_incremental_triangle"]
     )
     ultimates, reserves = result["ultimates"], result["reserves"]
-    left, right = st.columns(2)
-    left.metric("Total reserve", f"{float(np.sum(reserves)):,.0f}")
-    right.metric("Total ultimate", f"{float(np.sum(ultimates)):,.0f}")
+    factors = result["development_factor"]
+    # Share of each accident year's ultimate that is reported so far, from the factors.
+    cdf_by_column = np.append(np.cumprod(factors[::-1])[::-1], 1.0)
+    percent = 1 / cdf_by_column[::-1]
+    metrics = [
+        ("Total reserve", f"{float(np.sum(reserves)):,.0f}"),
+        ("Total ultimate", f"{float(np.sum(ultimates)):,.0f}"),
+    ]
+    if "elr" in result:
+        metrics.append(("Expected loss ratio", f"{float(result['elr']):.1%}"))
+    for column, (label, value) in zip(st.columns(len(metrics)), metrics):
+        column.metric(label, value)
 else:
     shown = as_form(data, incremental, show_form == "Incremental")
-    ultimates = reserves = None
+    ultimates = reserves = factors = percent = None
     if stale:
         st.info("The inputs changed. Press Develop to update the triangle.")
     else:
-        st.info(
-            "Press Develop in the sidebar to fill in the empty lower part of the triangle."
-        )
+        st.info("Press Develop in the sidebar to fill in the empty lower part of the triangle.")
 
 with st.container(border=True):
     st.html(
-        triangle_html(shown, ~np.isnan(data), ultimates, reserves, heatmap),
+        triangle_html(
+            shown, ~np.isnan(data), ultimates, reserves, heatmap, factors, percent
+        ),
     )
     st.caption(
         "Outlined blocks: observed data and developed cells. Shaded cells are projected."
@@ -227,14 +281,4 @@ if developed:
         data=triangle_to_csv(shown),
         file_name=f"developed_{method}_{show_form.lower()}.csv",
         mime="text/csv",
-    )
-
-    st.subheader("Development factors")
-    factors = pd.DataFrame(
-        {"Factor": result["development_factor"]},
-        index=[f"Dev {j + 1} to {j + 2}" for j in range(n - 1)],
-    )
-    st.dataframe(
-        factors.round(4),
-        alt="Development factor from each development year to the next",
     )

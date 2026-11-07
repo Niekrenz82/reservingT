@@ -36,6 +36,19 @@ def expected_CL_5x5():
     }
 
 @pytest.fixture
+def expected_CC_5x5():
+    """
+    Expected Cape Cod values for cum_5x5 with the exposures below,
+    computed by hand with exact fractions in a separate script.
+    """
+    return {
+        "exposure": np.array([10000.0, 11000.0, 12000.0, 12500.0, 13000.0]),
+        "elr": 0.21106802436672267,
+        "ultimates": [2120.0, 2316.6615, 2549.1934, 2618.2804, 2743.3441],
+        "total_reserve": 2387.4794,
+    }
+
+@pytest.fixture
 def triangle_3x2():
     """
     Triangle with wrong dimensions.
