@@ -26,7 +26,7 @@ All inputs are in the sidebar:
 
 A fully developed triangle, that should be downloadable. Also the ultimate loss and reserve per accident year, the total reserve, and the development factors.
 
-For Cape Cod, also the expected loss ratio (ELR) and the percent developed per accident year.
+For Cape Cod, also the expected loss ratio (ELR).
 
 ## Layout
 
@@ -35,7 +35,7 @@ Sidebar: all inputs listed above.
 Main area, in this order:
 
 1. The loaded triangle. Observed cells are filled in. The unobserved lower part of the triangle is empty.
-2. After **Develop** is pressed, the empty cells are filled in with the projection from the chosen method. Below the triangle: total reserve, ultimate and reserve per accident year, development factors, and a download button for the developed triangle.
+2. After **Develop** is pressed, the empty cells are filled in with the projection from the chosen method. In the triangle table: a "Dev factor" row under the development columns, and a "% developed" column after Reserve. Below the triangle: total reserve and total ultimate, and a download button for the developed triangle.
 
 Develop behaviour:
 
