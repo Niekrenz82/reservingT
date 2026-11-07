@@ -24,6 +24,7 @@ INK = "#0F172A"
 STRONG = "2px solid #0F172A"
 LIGHT = "1px solid #E2E8F0"
 TINT = {EMPTY: "#FFFFFF", OBSERVED: "#FFFFFF", DEVELOPED: "#F1F5F9", SUMMARY: "#F8FAFC"}
+ROW_HEIGHT = 36  # px
 
 
 def heat_color(t: float) -> str:
@@ -48,43 +49,41 @@ def cell_style(top, right, bottom, left, background, color=INK, weight=400) -> s
     )
 
 
-def triangle_html(
-    shown, observed, ultimates, reserves, heatmap: bool, factors=None, percent=None
-) -> str:
+def triangle_html(shown, observed, ultimates, reserves, heatmap, factors, percent) -> str:
     """
-    The triangle as an HTML table, with the observed and developed blocks outlined.
+    The triangle as one HTML table, with the observed and developed blocks outlined.
 
-    `shown` holds the triangle in the chosen form, with NaN for empty cells.
-    `ultimates` and `reserves` are None until the triangle is developed.
-    `factors` (one per development year, except the last) adds a row under the
-    Dev columns. `percent` (one per accident year) adds a column after Reserve.
+    The table has the development years, then Ultimate, Reserve and % developed,
+    and a Dev factor row at the bottom. Before Develop the summary columns and the
+    factor row are blank, so the table keeps the same shape.
     """
     n = shown.shape[0]
     region = np.where(observed, OBSERVED, np.where(np.isnan(shown), EMPTY, DEVELOPED))
     filled = shown[region > 0]
     low, high = float(filled.min()), float(filled.max())
     span = (high - low) or 1.0
-    extra = 3 if percent is not None else 2
+    summary_columns = 3
 
     def at(i: int, j: int) -> int:
-        if i < 0 or i >= n or j < 0 or j >= n + extra:
+        if i < 0 or i >= n or j < 0 or j >= n + summary_columns:
             return OUTSIDE
         return SUMMARY if j >= n else int(region[i, j])
 
-    head = "padding:8px 10px;text-align:right;font-weight:600;font-size:12px;color:#64748B;border-bottom:1px solid #CBD5E1;white-space:nowrap;"
-    headers = ["", *[f"Dev {j + 1}" for j in range(n)], "Ultimate", "Reserve"]
-    if percent is not None:
-        headers.append("% developed")
-    header_row = "".join(f'<th style="{head}">{label}</th>' for label in headers)
+    head = (
+        "padding:8px 10px;text-align:right;font-weight:600;font-size:12px;color:#64748B;"
+        "background:#F8FAFC;border:1px solid #E2E8F0;white-space:nowrap;"
+    )
+    label = (
+        "padding:8px 10px;text-align:left;font-weight:600;font-size:12px;color:#64748B;"
+        "background:#F8FAFC;border:1px solid #E2E8F0;white-space:nowrap;"
+    )
+    headers = ["", *[f"Dev {j + 1}" for j in range(n)], "Ultimate", "Reserve", "% developed"]
+    header_row = "".join(f'<th style="{head}">{text}</th>' for text in headers)
 
     rows = []
     for i in range(n):
-        row_label = (
-            '<th style="padding:6px 10px;text-align:left;font-weight:600;font-size:12px;'
-            f'color:#64748B;white-space:nowrap;">AY {i + 1}</th>'
-        )
-        cells = [row_label]
-        for j in range(n + extra):
+        cells = [f'<th style="{label}">AY {i + 1}</th>']
+        for j in range(n + summary_columns):
             r = at(i, j)
             text, background, color, weight = "", TINT[r], INK, 400
             if j < n:
@@ -95,14 +94,12 @@ def triangle_html(
                         t = (value - low) / span
                         background = heat_color(t)
                         color = "#FFFFFF" if t > 0.55 else INK
-            elif ultimates is not None:
-                if j == n:
-                    text = f"{ultimates[i]:,.0f}"
-                elif j == n + 1:
-                    text = f"{reserves[i]:,.0f}"
-                else:
-                    text = f"{percent[i]:.1%}"
-                weight = 600 if j <= n + 1 else 400
+            elif j == n and ultimates is not None:
+                text, weight = f"{ultimates[i]:,.0f}", 600
+            elif j == n + 1 and reserves is not None:
+                text, weight = f"{reserves[i]:,.0f}", 600
+            elif j == n + 2 and percent is not None:
+                text = f"{percent[i]:.1%}"
             style = cell_style(
                 top=border_between(r, at(i - 1, j)),
                 right=border_between(r, at(i, j + 1)),
@@ -113,29 +110,24 @@ def triangle_html(
                 weight=weight,
             )
             cells.append(f'<td style="{style}">{text}</td>')
-        rows.append(f"<tr>{''.join(cells)}</tr>")
+        rows.append(f'<tr style="height:{ROW_HEIGHT}px">{"".join(cells)}</tr>')
 
-    if factors is not None:
-        footer_style = (
-            "padding:6px 10px;text-align:right;white-space:nowrap;font-size:13px;"
-            "color:#475569;border-top:1px solid #CBD5E1;"
-        )
-        footer = [
-            (
-                '<th style="padding:6px 10px;text-align:left;font-weight:600;font-size:12px;'
-                'color:#64748B;white-space:nowrap;border-top:1px solid #CBD5E1;">Dev factor</th>'
-            )
-        ]
-        for j in range(n + extra):
-            text = f"{factors[j]:.4f}" if j < len(factors) else ""
-            footer.append(f'<td style="{footer_style}">{text}</td>')
-        rows.append(f"<tr>{''.join(footer)}</tr>")
+    footer_style = (
+        "padding:6px 10px;text-align:right;white-space:nowrap;font-size:13px;color:#475569;"
+        "border-top:1px solid #CBD5E1;"
+    )
+    footer = [f'<th style="{label}">Dev factor</th>']
+    for j in range(n + summary_columns):
+        text = f"{factors[j]:.4f}" if factors is not None and j < n - 1 else ""
+        footer.append(f'<td style="{footer_style}">{text}</td>')
+    rows.append(f'<tr style="height:{ROW_HEIGHT}px">{"".join(footer)}</tr>')
 
     return (
-        '<div style="overflow-x:auto">'
+        '<div style="overflow-x:auto;">'
         '<table role="table" aria-label="Loss triangle" style="border-collapse:collapse;'
         'width:100%;font-size:14px;font-variant-numeric:tabular-nums;">'
-        f"<thead><tr>{header_row}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        f'<thead><tr style="height:{ROW_HEIGHT}px">{header_row}</tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
     )
 
 
@@ -222,13 +214,12 @@ with st.sidebar:
     if not exposure_ok:
         st.error("Every accident year needs a positive exposure.")
 
-    inputs_ok = prior_ok and exposure_ok
     develop_clicked = st.button(
         "Develop",
         type="primary",
         icon=":material/play_arrow:",
         width="stretch",
-        disabled=not inputs_ok,
+        disabled=not (prior_ok and exposure_ok),
     )
 
     # Develop stores the inputs it ran on. Results show only while the inputs still match.
@@ -272,9 +263,7 @@ else:
     if stale:
         st.info("The inputs changed. Press Develop to update the triangle.")
     else:
-        st.info(
-            "Press Develop in the sidebar to fill in the empty lower part of the triangle."
-        )
+        st.info("Press Develop in the sidebar to fill in the empty lower part of the triangle.")
 
 with st.container(border=True):
     st.html(

@@ -12,7 +12,7 @@ More then a one page simple reserve app.
 
 ## Inputs
 
-All inputs are in the sidebar:
+The sidebar holds the file and display settings. The per-year input of the chosen method is an editable column beside the triangle:
 
 - Loss triangle CSV file.
 - Triangle type: cumulative or incremental.
@@ -20,7 +20,7 @@ All inputs are in the sidebar:
 - For Bornhuetter-Ferguson only: prior ultimate loss per accident year. Defaults to the Chain Ladder ultimates and can be edited.
 - For Cape Cod only: exposure per accident year (e.g. premium). Defaults to 10,000 for every accident year and can be edited. Every exposure must be positive.
 - How to show the triangle: cumulative or incremental. This applies to both the loaded and the developed triangle.
-- A **Develop** button.
+- A **Develop** button, below the triangle.
 
 ## Outputs
 
@@ -30,7 +30,9 @@ For Cape Cod, also the expected loss ratio (ELR).
 
 ## Layout
 
-Sidebar: all inputs listed above.
+Sidebar: file, triangle type, how to show the triangle, heatmap, and method.
+
+Main area, top to bottom: one table, then the **Develop** button, then the results. The table has an accident year column, the development years, Ultimate, Reserve, % developed, and a Dev factor row at the bottom. For Bornhuetter-Ferguson and Cape Cod, the last column is an editable input per accident year (prior ultimate or exposure). The table is built as one grid of Streamlit columns, so every row lines up. Blank spacer columns separate the groups. The heatmap applies to the triangle for every method.
 
 Main area, in this order:
 
@@ -58,7 +60,7 @@ Entry point is `app/streamlit_app.py`. Non-UI logic can be found in `src/reservi
 
 ## Acceptance criteria
 
-- Uploading a loss triangle shows it in the main area with the lower part empty, and all inputs are in the sidebar.
+- Uploading a loss triangle shows it in the main area with the lower part empty, and the sidebar and triangle table hold all the inputs.
 - Pressing **Develop** fills in the empty lower part using the chosen method.
 - For `testdata/cumulative_5x5.csv` with Chain Ladder, the total reserve is about 2382.35.
 - For `testdata/cumulative_5x5.csv` with Cape Cod and exposures 10000, 11000, 12000, 12500, 13000, the total reserve is about 2387.48 and the ELR is about 0.2111. These are the hand values in `tests/test_cape_cod.py`.
